@@ -12,6 +12,12 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
+
+//Adding libs for simulation------------------------------------
+import frc.robot.subsystems.Drivetrain;
+import edu.wpi.first.wpilibj2.command.RunCommand;
+
+//----------------------------------------------------------------------------------
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
  * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
@@ -22,6 +28,10 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
 
+  //Drivetrain object for Simulation Stuff------------------------------------------
+  private final Drivetrain m_drivetrain = new Drivetrain();
+  //--------------------------------------------------------------------------------
+
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_driverController =
       new CommandXboxController(OperatorConstants.kDriverControllerPort);
@@ -30,6 +40,24 @@ public class RobotContainer {
   public RobotContainer() {
     // Configure the trigger bindings
     configureBindings();
+
+    // Adding default drive command ---------------------------------------------------
+    m_drivetrain.setDefaultCommand(
+    new RunCommand(
+        () -> {
+          // Joystick values are -1 to 1
+          double forwardPct = -m_driverController.getLeftY();
+          double rotationPct = m_driverController.getRightX();
+
+          // Your drivetrain.drive expects m/s and rad/s, so scale it
+          m_drivetrain.drive(forwardPct * Drivetrain.kMaxSpeed,
+                             rotationPct * Drivetrain.kMaxAngularSpeed);
+
+          // Visual only movement in sim
+          m_drivetrain.updateSimPose(forwardPct, rotationPct);
+        },
+        m_drivetrain));
+    //------------------------------------------------------------------------------------
   }
 
   /**

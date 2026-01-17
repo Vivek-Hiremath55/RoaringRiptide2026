@@ -10,7 +10,21 @@ import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 
-public class Drivetrain {
+
+// Adding simulation libraries
+import edu.wpi.first.wpilibj.RobotBase;
+
+// Libs for 2D simulation------------------------------------------------------------------------
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+
+// Command-based subsystem base
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+//--------------------------------------------------------------------------------------------
+
+public class Drivetrain extends SubsystemBase{
   public static final double kMaxSpeed = 3.0; // meters per second
   public static final double kMaxAngularSpeed = 2 * Math.PI; // one rotation per second
 
@@ -31,6 +45,11 @@ public class Drivetrain {
   private final PIDController m_leftPIDController = new PIDController(1, 0, 0);
   private final PIDController m_rightPIDController = new PIDController(1, 0, 0);
 
+  // Simulation visualization-------------------------------------
+  private final Field2d m_field = new Field2d();
+  private Pose2d m_robotPose = new Pose2d();
+  //------------------------------------------------------------------
+
   private final DifferentialDriveKinematics m_kinematics =
       new DifferentialDriveKinematics(kTrackWidth);
 
@@ -49,6 +68,16 @@ public class Drivetrain {
     m_leftLeader.addFollower(m_leftFollower);
     m_rightLeader.addFollower(m_rightFollower);
 
+    //PWMSparkMax does not support "addFollower" so this is the compensation stuff -------------
+    m_leftLeader.setVoltage(leftOutput + leftFeedforward);
+    m_rightLeader.setVoltage(rightOutput + rightFeedforward);
+
+    // Add these 2 lines so followers match leaders (PWM style)
+    m_leftFollower.setVoltage(leftOutput + leftFeedforward);
+    m_rightFollower.setVoltage(rightOutput + rightFeedforward);
+
+    //------------------------------------------------------------------------------------------
+
     // We need to invert one side of the drivetrain so that positive voltages
     // result in both sides moving forward. Depending on how your robot's
     // gearbox is constructed, you might have to invert the left side instead.
@@ -62,6 +91,10 @@ public class Drivetrain {
 
     m_leftEncoder.reset();
     m_rightEncoder.reset();
+
+    //Simulation Dashborad Addition-------------------------
+    SmartDashboard.putData("Field", m_field);
+    //------------------------------------------------------
 
     m_odometry =
         new DifferentialDriveOdometry(
@@ -101,4 +134,21 @@ public class Drivetrain {
     m_odometry.update(
         m_gyro.getRotation2d(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance());
   }
+
+  // Simple visual-only pose update for simulation----------------------------------------------
+public void updateSimPose(double forwardPercent, double rotationPercent) {
+  if (!RobotBase.isSimulation()) return;
+
+  double dx = forwardPercent * 0.05;      // tune if you want faster/slower visual motion
+  double dthetaDeg = rotationPercent * 5; // tune rotation feel
+
+  m_robotPose =
+      new Pose2d(
+          m_robotPose.getX() + dx,
+          m_robotPose.getY(),
+          m_robotPose.getRotation().plus(Rotation2d.fromDegrees(dthetaDeg)));
+
+  m_field.setRobotPose(m_robotPose);
+  }
+  //---------------------------------------------------------------------------------------------------
 }
