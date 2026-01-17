@@ -143,7 +143,7 @@ public class Drivetrain extends SubsystemBase{
 
   // Simple visual-only pose update for simulation-----------------------------
   public void updateSimPose(double forwardPercent, double rotationPercent) {
-    if (!RobotBase.isSimulation());
+    if (!RobotBase.isSimulation()) return;
   double dx = forwardPercent * 0.05;      // tune if you want faster/slower visual motion
   double dthetaDeg = rotationPercent * 5; // tune rotation feel
 
