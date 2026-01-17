@@ -10,7 +10,6 @@ import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 
-
 // Adding simulation libraries
 import edu.wpi.first.wpilibj.RobotBase;
 
@@ -62,19 +61,21 @@ public class Drivetrain extends SubsystemBase{
    * Constructs a differential drive object. Sets the encoder distance per pulse and resets the
    * gyro.
    */
+
   public Drivetrain() {
     m_gyro.reset();
 
-    m_leftLeader.addFollower(m_leftFollower);
-    m_rightLeader.addFollower(m_rightFollower);
+
+    // m_leftLeader.addFollower(m_leftFollower);
+    // m_rightLeader.addFollower(m_rightFollower);
 
     //PWMSparkMax does not support "addFollower" so this is the compensation stuff -------------
-    m_leftLeader.setVoltage(leftOutput + leftFeedforward);
-    m_rightLeader.setVoltage(rightOutput + rightFeedforward);
+    // m_leftLeader.setVoltage(leftOutput + leftFeedforward);
+    // m_rightLeader.setVoltage(rightOutput + rightFeedforward);
 
-    // Add these 2 lines so followers match leaders (PWM style)
-    m_leftFollower.setVoltage(leftOutput + leftFeedforward);
-    m_rightFollower.setVoltage(rightOutput + rightFeedforward);
+    // // Add these 2 lines so followers match leaders (PWM style)
+    // m_leftFollower.setVoltage(leftOutput + leftFeedforward);
+    // m_rightFollower.setVoltage(rightOutput + rightFeedforward);
 
     //------------------------------------------------------------------------------------------
 
@@ -114,8 +115,13 @@ public class Drivetrain extends SubsystemBase{
         m_leftPIDController.calculate(m_leftEncoder.getRate(), speeds.leftMetersPerSecond);
     final double rightOutput =
         m_rightPIDController.calculate(m_rightEncoder.getRate(), speeds.rightMetersPerSecond);
+
     m_leftLeader.setVoltage(leftOutput + leftFeedforward);
     m_rightLeader.setVoltage(rightOutput + rightFeedforward);
+
+    // Add these 2 lines so followers match leaders (PWM style)
+    m_leftFollower.setVoltage(leftOutput + leftFeedforward);
+    m_rightFollower.setVoltage(rightOutput + rightFeedforward);
   }
 
   /**
@@ -135,10 +141,9 @@ public class Drivetrain extends SubsystemBase{
         m_gyro.getRotation2d(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance());
   }
 
-  // Simple visual-only pose update for simulation----------------------------------------------
-public void updateSimPose(double forwardPercent, double rotationPercent) {
-  if (!RobotBase.isSimulation()) return;
-
+  // Simple visual-only pose update for simulation-----------------------------
+  public void updateSimPose(double forwardPercent, double rotationPercent) {
+    if (!RobotBase.isSimulation());
   double dx = forwardPercent * 0.05;      // tune if you want faster/slower visual motion
   double dthetaDeg = rotationPercent * 5; // tune rotation feel
 
