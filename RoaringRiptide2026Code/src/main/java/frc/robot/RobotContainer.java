@@ -4,13 +4,19 @@
 
 package frc.robot;
 
-import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.Autos;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.Autos;
+import frc.robot.Constants.OIConstants;
+import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
+
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -20,16 +26,45 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
+  private final DriveSubsystem m_robotDrive = new DriveSubsystem();
+  private final IntakeSubsystem m_intake = new IntakeSubsystem();
+  private final ShooterSubsystem m_shooter = new ShooterSubsystem();
 
-  // Replace with CommandPS4Controller or CommandJoystick if needed
+  // The driver's controller
   private final CommandXboxController m_driverController =
-      new CommandXboxController(OperatorConstants.kDriverControllerPort);
+      new CommandXboxController(OIConstants.kDriverControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the trigger bindings
     configureBindings();
+
+    // Configure default commands
+    m_robotDrive.setDefaultCommand(
+        // The left stick controls translation of the robot.
+        // Turning is controlled by the X axis of the right stick.
+        new RunCommand(
+            () ->
+                m_robotDrive.drive(
+                    -MathUtil.applyDeadband(
+                        m_driverController.getLeftY(), OIConstants.kDriveDeadband),
+                    -MathUtil.applyDeadband(
+                        m_driverController.getLeftX(), OIConstants.kDriveDeadband),
+                    -MathUtil.applyDeadband(
+                        m_driverController.getRightX(), OIConstants.kDriveDeadband),
+                    true),
+            m_robotDrive).withName("Robot Drive Default"));
+
+    SmartDashboard.putData(m_intake);
+    SmartDashboard.putData(m_shooter);
+
+    SmartDashboard.putNumber("Bat Voltage", RobotController.getBatteryVoltage());
+
+    SmartDashboard.putData("Intake", m_intake.runIntakeCommand().withName("Intake - Intaking"));
+    SmartDashboard.putData("Extake", m_intake.runExtakeCommand().withName("Intake - Extaking"));
+
+    SmartDashboard.putData("Feeder", m_shooter.runFeederCommand().withName("Shooter - Feeding and Shooting"));
+    SmartDashboard.putData("Flywheel", m_shooter.runFlywheelCommand().withName("Shooter - Spinning up Flywheel"));
   }
 
   /**
@@ -42,13 +77,24 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    new Trigger(m_exampleSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_exampleSubsystem));
+    // Left Stick Button -> Set swerve to X
+    m_driverController.leftStick().whileTrue(m_robotDrive.setXCommand());
 
-    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
-    // cancelling on release.
-    m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
+    // Start Button -> Zero swerve heading
+    m_driverController.start().onTrue(m_robotDrive.zeroHeadingCommand());
+
+    // Right Trigger -> Run fuel intake in reverse
+    m_driverController
+      .rightTrigger(OIConstants.kTriggerButtonThreshold)
+      .whileTrue(m_intake.runIntakeCommand());
+
+    // Left Trigger -> Run fuel intake in reverse
+    m_driverController
+      .leftTrigger(OIConstants.kTriggerButtonThreshold)
+      .whileTrue(m_intake.runExtakeCommand());
+
+    // Y Button -> Run intake and run the shooter flywheel and feeder
+    m_driverController.y().toggleOnTrue(m_shooter.runShooterCommand().alongWith(m_intake.runIntakeCommand()));
   }
 
   /**
@@ -58,6 +104,6 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return Autos.exampleAuto(m_exampleSubsystem);
+    return Autos.exampleAuto(m_robotDrive);
   }
 }
